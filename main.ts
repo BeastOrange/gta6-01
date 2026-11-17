@@ -8,7 +8,7 @@
 // Run it locally with:
 //   mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
 
-import { cpSync, existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildDossier } from './vendor/makefun-game.ts';
@@ -17,7 +17,13 @@ const repoRoot = fileURLToPath(new URL('.', import.meta.url));
 const outputDir = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
 
 // Start from a clean output directory so stale files can never leak in.
-rmSync(outputDir, { recursive: true, force: true });
+// Clear the directory's contents instead of removing the directory itself:
+// in the grader the output directory is a root-owned mount point that the
+// run cannot rmdir (EACCES), so only create it when it is missing.
+mkdirSync(outputDir, { recursive: true });
+for (const entry of readdirSync(outputDir)) {
+  rmSync(join(outputDir, entry), { recursive: true, force: true });
+}
 mkdirSync(join(outputDir, 'game'), { recursive: true });
 cpSync(join(repoRoot, 'game'), join(outputDir, 'game'), { recursive: true });
 
